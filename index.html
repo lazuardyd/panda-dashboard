@@ -3506,63 +3506,107 @@ function goProdiPage(p) {
 
 // ======================== INSIGHT AI ========================
 
-const PANDA_CONTEXT = `Kamu adalah PANDA AI Assistant, asisten analitik cerdas untuk Performance and Analytics Dashboard (PANDA) Telkom University. 
+function buildDynamicContext() {
+  function getText(selector) {
+    const el = document.querySelector(selector);
+    return el ? el.innerText.trim() : '';
+  }
+  function getAllText(selector) {
+    return Array.from(document.querySelectorAll(selector))
+      .map(el => el.innerText.trim())
+      .filter(t => t.length > 0)
+      .join(' | ');
+  }
+  function getTableData(tableId) {
+    const table = document.getElementById(tableId) || document.querySelector(tableId);
+    if (!table) return '';
+    const rows = Array.from(table.querySelectorAll('tr'));
+    return rows.map(row => {
+      const cells = Array.from(row.querySelectorAll('th, td'));
+      return cells.map(c => c.innerText.trim()).join(' | ');
+    }).filter(r => r.length > 1).join('\n');
+  }
+  function getSectionData(pageId) {
+    const page = document.getElementById(pageId);
+    if (!page) return '';
+    // Ambil semua teks dari stat-mini, mcard, bar-row, kpi-item, chip, rank-badge
+    const parts = [];
+    page.querySelectorAll('.mcard').forEach(el => {
+      const label = el.querySelector('.mcard-label')?.innerText.trim() || '';
+      const val   = el.querySelector('.mcard-val')?.innerText.trim() || '';
+      const sub   = el.querySelector('.mcard-sub')?.innerText.trim() || '';
+      if (label && val) parts.push(`${label}: ${val}${sub ? ' ('+sub+')' : ''}`);
+    });
+    page.querySelectorAll('.stat-mini').forEach(el => {
+      const label = el.querySelector('.stat-mini-lbl')?.innerText.trim() || '';
+      const val   = el.querySelector('.stat-mini-val')?.innerText.trim() || '';
+      if (label && val) parts.push(`${label}: ${val}`);
+    });
+    page.querySelectorAll('.bar-row').forEach(el => {
+      const label = el.querySelector('.bar-lbl')?.innerText.trim() || '';
+      const val   = el.querySelector('.bar-val')?.innerText.trim() || '';
+      if (label && val) parts.push(`${label}: ${val}`);
+    });
+    page.querySelectorAll('.kpi-item').forEach(el => {
+      const name = el.querySelector('.kpi-name')?.innerText.trim() || '';
+      const chip = el.querySelector('.chip')?.innerText.trim() || '';
+      if (name) parts.push(`${name}${chip ? ': '+chip : ''}`);
+    });
+    page.querySelectorAll('.rank-badge').forEach(el => {
+      const name = el.querySelector('.rank-name')?.innerText.trim() || '';
+      const chip = el.querySelector('.chip')?.innerText.trim() || '';
+      if (name) parts.push(`${name}: ${chip}`);
+    });
+    // Ambil semua tabel
+    page.querySelectorAll('table').forEach((tbl, i) => {
+      const rows = Array.from(tbl.querySelectorAll('tr'));
+      const tblText = rows.map(row => {
+        return Array.from(row.querySelectorAll('th,td'))
+          .map(c => c.innerText.trim()).filter(t=>t).join(' | ');
+      }).filter(r => r.length > 1).join('\n');
+      if (tblText) parts.push('TABEL:\n' + tblText);
+    });
+    // Ambil semua teks dari stat2, stat-mini di dalam card
+    page.querySelectorAll('.stat2 .stat-mini').forEach(el => {
+      const label = el.querySelector('.stat-mini-lbl')?.innerText.trim() || '';
+      const val   = el.querySelector('.stat-mini-val')?.innerText.trim() || '';
+      if (label && val) parts.push(`${label}: ${val}`);
+    });
+    return parts.join('\n');
+  }
 
-DATA DASHBOARD PANDA (per Juni 2026):
+  const sections = [
+    { id: 'page-dashboard',   label: 'GAMBARAN UMUM DASHBOARD' },
+    { id: 'page-mahasiswa',   label: 'DATA MAHASISWA' },
+    { id: 'page-dosen',       label: 'DATA DOSEN' },
+    { id: 'page-ptk',         label: 'DATA PEGAWAI (TPA)' },
+    { id: 'page-alumni',      label: 'DATA ALUMNI' },
+    { id: 'page-prestasi',    label: 'DATA PRESTASI MAHASISWA' },
+    { id: 'page-target',      label: 'TARGET & CAPAIAN' },
+    { id: 'page-kpi',         label: 'KPI INTERNAL' },
+    { id: 'page-akreditasi',  label: 'AKREDITASI & RANKING' },
+    { id: 'page-sosmoned',    label: 'SOSIAL MEDIA MONITORING' },
+    { id: 'page-webmoned',    label: 'WEBSITE MONITORING' },
+  ];
 
-MAHASISWA:
-- Total mahasiswa aktif: 28.640 (↑5.3% dari TA sebelumnya)
-- Maba TA 2025/2026: 6.240 (target 7.000, capaian 89%)
-- Distribusi: D4/S1: 25.840, S2: 1.980, S3: 500, D3: 320
-- Jalur masuk: SBMPTN/SNBT 2.808, Mandiri 2.371, Kemitraan 1.061
-- Mahasiswa asing: 3.2% (target 5%)
-- Tren 5 tahun: 2020:24.100, 2021:25.200, 2022:26.400, 2023:27.300, 2024:28.640
+  let context = `Kamu adalah PANDA AI Assistant, asisten analitik cerdas untuk Performance and Analytics Dashboard (PANDA) Telkom University.
 
-DOSEN & PEGAWAI:
-- Total dosen: 1.124 (↑3.1%), Guru Besar: 98 (target 120)
-- Dosen S3: 54% (target 50% ✓), Dosen S2: 427 orang
-- Total pegawai TPA: 842 (Tetap:610, Capeg:44, Profesional:52, Outsourcing:136)
-- Rasio dosen:mahasiswa = 1:25 (✓ tercapai)
+DATA LENGKAP DASHBOARD PANDA (dibaca langsung dari sistem, per Juni 2026):
 
-ALUMNI:
-- Total alumni: 112.480 (terdaftar Dit KKA)
-- Distribusi kerja: IT/Teknologi 38%, Telekomunikasi 22%, Perbankan 16%, BUMN 12%, Wirausaha 8%, Lainnya 4%
+`;
 
-AKREDITASI & RANKING:
-- Total prodi: 56 aktif
-- Akreditasi Unggul/A: 32 prodi (57.1%), B: 18 prodi, C: 4, Proses: 2
-- Internasional: ABET 5 prodi, ASIIN 4 prodi, AACSB proses
-- QS World Ranking: #801–850, THE: #1001–1200, QS Asia: #201–250
-- Webometrics: #8 Indonesia, UniRank: #5 Indonesia
+  sections.forEach(sec => {
+    const data = getSectionData(sec.id);
+    if (data) {
+      context += `\n=== ${sec.label} ===\n${data}\n`;
+    }
+  });
 
-TARGET & CAPAIAN TA 2025/2026:
-- Tercapai: 3 target (Rasio dosen S3, Rasio dosen:mahasiswa, Rasio dosen:mahasiswa 1:25)
-- Progres: 4 target, Belum tercapai: 1 (mahasiswa asing)
-- Rata-rata capaian keseluruhan: 89%
+  context += `\nJawab dalam Bahasa Indonesia yang profesional namun mudah dipahami. Gunakan data di atas untuk memberikan analisis yang akurat, insight yang actionable, dan rekomendasi strategis yang relevan. Format jawaban dengan baik, gunakan emoji secukupnya untuk visual. Jika data tidak tersedia dalam konteks, sampaikan dengan jujur.`;
 
-KPI INTERNAL (60+ indikator, sebagian):
-- Guru Besar: 98/120 (82%)
-- Prodi Unggul/A: 32/35 (91%)
-- Prodi Akreditasi Internasional: 12/15 (80%)
-- Cyber Security Maturity: 3.2/4.0 (Progres)
-- AI Maturity Level: Level 2 (target Level 3)
-- Kolaborasi industri inovasi AI: 18/25
-- HKI diimplementasikan: 28/35
+  return context;
+}
 
-SOSIAL MEDIA MONITORING (Mei 2026):
-- Instagram: ~294.000 followers (+100/hari)
-- LinkedIn: ~112.800 followers (+18/hari)
-- YouTube: ~34.400, TikTok: ~29.900
-- Facebook: ~23.720, Twitter: ~17.920
-- Post aktif: Instagram & TikTok paling aktif
-
-WEBSITE MONITORING:
-- Views Juni 2026: 128.739 (s.d. 2 Jun)
-- Device: mobile 79.2%, desktop 20.6%, tablet 0.15%
-- Gender: unknown 92.2%, female 4.5%, male 3.3%
-- Usia dominan: unknown 93.6%, 18-24 sebesar 3.2%
-
-Jawab dalam Bahasa Indonesia yang profesional namun mudah dipahami. Gunakan data di atas untuk memberikan analisis yang akurat, insight yang actionable, dan rekomendasi strategis yang relevan. Format jawaban dengan baik, gunakan emoji secukupnya untuk visual.`;
 
 let anthropicApiKey = '';
 let aiConversationHistory = [];
@@ -3695,7 +3739,7 @@ async function sendAiMessage() {
     // Build Gemini contents array: inject system context as first user turn
     const geminiContents = [];
     // Prepend system context as a user message (Gemini doesn't have a separate system role)
-    geminiContents.push({ role: 'user', parts: [{ text: PANDA_CONTEXT }] });
+    geminiContents.push({ role: 'user', parts: [{ text: buildDynamicContext() }] });
     geminiContents.push({ role: 'model', parts: [{ text: 'Baik, saya memahami konteks data PANDA Telkom University. Saya siap menjawab pertanyaan Anda.' }] });
     // Add conversation history
     for (const m of aiConversationHistory) {
