@@ -5691,6 +5691,12 @@ function applySosmedFilter() {
   const rangeDaysPost = s && s.startDate && s.endDate
     ? Math.round((s.endDate.getTime() - s.startDate.getTime()) / 86400000) : 30;
   fPost.forEach(r => { if (postPerPlatform.hasOwnProperty(r.channel)) postPerPlatform[r.channel]++; });
+
+  // Debug: log all unique channels found
+  const allChannels = [...new Set(sosmedRawData.map(r => r.channel))];
+  console.log('Channels found:', allChannels);
+  console.log('Facebook engagement (filtered):', filtered.filter(r => r.channel === 'Facebook').reduce((s,r) => s + r.engagement, 0));
+  console.log('Facebook rows (filtered):', filtered.filter(r => r.channel === 'Facebook').length);
   sosmedPostData.filter(r => {
     if (!r.date || !s || !s.startDate) return false;
     const rLocal = new Date(r.date.getFullYear(), r.date.getMonth(), r.date.getDate()).getTime();
@@ -6284,7 +6290,7 @@ function applyWebMonedFilter() {
   const prevNewUsers  = fEvTotPrev.reduce((s,r) => s + r.newUsers, 0);
   const prevAvgDurSec = fEvTotPrev.length > 0 ? fEvTotPrev.reduce((s,r) => s + r.avgDuration, 0) / fEvTotPrev.length : 0;
 
-  showDelta('web-new-users-delta', totalNewUsers, prevNewUsers);
+  showDelta('web-new-users-delta', 0, 0); // akan diupdate setelah event_total diproses
   showDelta('web-engagement-delta', avgEngagement ? parseFloat(avgEngagement) : 0,
     fEvTotPrev.length > 0 && webRawEngagement.length > 0 ? (() => {
       const prevEng = webRawEngagement.filter(r => {
@@ -6529,6 +6535,8 @@ function applyWebMonedFilter() {
   const totalNewUsers   = fEvTotal.reduce((s,r) => s + r.newUsers, 0);
   const avgDurSec = fEvTotal.length > 0
     ? fEvTotal.reduce((s,r) => s + r.avgDuration, 0) / fEvTotal.length : 0;
+
+  showDelta('web-new-users-delta', totalNewUsers, prevNewUsers);
   const durMins = Math.floor(avgDurSec/60);
   const durSecs = Math.round(avgDurSec%60);
 
