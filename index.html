@@ -3533,8 +3533,8 @@ function showPage(id, el, parentName) {
   if (id === 'admisi') initAdmisi();
   if (id === 'akreditasi') initAkreditasi();
   if (id === 'sosmoned') { initSosMoned(); loadSosmedData(); }
-  if (id === 'webmoned') { if (webRawTraffic.length === 0) loadWebMonedData(); else { drpInitSplit('webmoned'); applyWebMonedFilter(); } }
-  if (id === 'webmoned') initWebMoned();
+  if (id === 'webmoned') { if (webRawTraffic.length === 0) loadWebMonedDatas(); else { drpInitSplit('webmoned'); applyWebMonedFilter(); } }
+  if (id === 'webmoned') initWebMoneds();
   if (id === 'isumonitoring') initIsuMonitoring();
   if (id === 'laporan') { switchDocTab('internal'); }
 }
